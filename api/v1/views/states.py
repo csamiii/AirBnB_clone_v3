@@ -11,27 +11,33 @@ def states():
     states = storage.all(State)
     return jsonify([obj.to_dict() for obj in states.values()])
 
-@app_views.route("/states/<state_id>",  methods=["GET"], strict_slashes=False)
-def state_by_id(state_id):
-    """ Retrieves a State object """
-    state = storage.get("State", state_id)
-
+@app_views.route('/states/<state_id>', methods=['GET'], strict_slashes=False)
+def get_state(state_id):
+    """ Retrieves a specific State """
+    state = storage.get(State, state_id)
     if not state:
-        print("State not found")
         abort(404)
 
-    return jsonify(state.to_dict())   
+    return jsonify(state.to_dict())
+
 
 @app_views.route('/states/<state_id>', methods=['DELETE'],
                  strict_slashes=False)
 def delete_state(state_id):
-    """ Deletes a State object """
-    state = storage.get("State", state_id)
+    """
+    Deletes a State Object
+    """
+
+    state = storage.get(State, state_id)
+
     if not state:
         abort(404)
-    state.delete()
+
+    storage.delete(state)
     storage.save()
+
     return make_response(jsonify({}), 200)
+
 
 @app_views.route('/states', methods=['POST'], strict_slashes=False)
 def create_state():
@@ -47,19 +53,23 @@ def create_state():
     return make_response(jsonify(state.to_dict()), 201)
 
 @app_views.route('/states/<state_id>', methods=['PUT'], strict_slashes=False)
-def update_state(state_id):
-    """ Updates a State object """
-    state = storage.get("State", state_id)
+def put_state(state_id):
+    """
+    Updates a State
+    """
+    state = storage.get(State, state_id)
+
     if not state:
         abort(404)
 
-    body_request = request.get_json()
-    if not body_request:
-        abort(400, "Not a JSON")
+    if not request.get_json():
+        abort(400, description="Not a JSON")
 
-    for key, value in body_request.items():
-        if key != 'id' and key != 'created_at' and key != 'updated_at':
+    ignore = ['id', 'created_at', 'updated_at']
+
+    data = request.get_json()
+    for key, value in data.items():
+        if key not in ignore:
             setattr(state, key, value)
-
     storage.save()
     return make_response(jsonify(state.to_dict()), 200)
