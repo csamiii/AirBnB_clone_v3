@@ -17,7 +17,7 @@ def users():
 @app_views.route('/users/<user_id>', methods=['GET'], strict_slashes=False)
 def user_id(user_id):
     """ Retrieves a user object  """
-    user = storage.get("User", user_id)
+    user = storage.get(User, user_id)
     if not user:
         abort(404)
     return jsonify(user.to_dict())
@@ -26,10 +26,10 @@ def user_id(user_id):
                  strict_slashes=False)
 def delete_user(user_id):
     """ Deletes a User object """
-    user = storage.get("User", user_id)
+    user = storage.get(User, user_id)
     if not user:
         abort(404)
-    user.delete()
+    storage.delete(user)
     storage.save()
     return make_response(jsonify({}), 200)
 
@@ -52,17 +52,19 @@ def create_user():
 @app_views.route('/users/<user_id>', methods=['PUT'], strict_slashes=False)
 def update_user(user_id):
     """ Updates a User object """
-    user = storage.get("User", user_id)
+    user = storage.get(User, user_id)
+
     if not user:
         abort(404)
 
-    body_request = request.get_json()
-    if not body_request:
-        abort(400, "Not a JSON")
+    if not request.get_json():
+        abort(400, description="Not a JSON")
 
-    for k, v in body_request.items():
-        if k not in ['id', 'email', 'created_at', 'updated_at']:
-            setattr(user, k, v)
+    ignore = ['id', 'email', 'created_at', 'updated_at']
 
+    data = request.get_json()
+    for key, value in data.items():
+        if key not in ignore:
+            setattr(user, key, value)
     storage.save()
     return make_response(jsonify(user.to_dict()), 200)
