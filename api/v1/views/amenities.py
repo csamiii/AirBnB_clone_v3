@@ -11,25 +11,32 @@ def amenities():
     amenities = storage.all(Amenity)
     return jsonify([obj.to_dict() for obj in amenities.values()])
 
-@app_views.route('/amenities/<amenity_id>', methods=['GET'],
+
+@app_views.route('/amenities/<amenity_id>/', methods=['GET'],
                  strict_slashes=False)
 def retrieve_amenity_id(amenity_id):
     """Retrieves Amenity object."""
-    amenity = storage.get("Amenity", amenity_id)
+    amenity = storage.get(Amenity, amenity_id)
     if not amenity:
         abort(404)
+
     return jsonify(amenity.to_dict())
+
 
 @app_views.route('/amenities/<amenity_id>', methods=['DELETE'],
                  strict_slashes=False)
 def delete_amenity(amenity_id):
     """Deletes a Amenity object."""
-    amenity = storage.get("Amenity", amenity_id)
+    amenity = storage.get(Amenity, amenity_id)
+
     if not amenity:
         abort(404)
-    amenity.delete()
+
+    storage.delete(amenity)
     storage.save()
+
     return make_response(jsonify({}), 200)
+
 
 @app_views.route('/amenities', methods=['POST'], strict_slashes=False)
 def create_amenity():
@@ -44,20 +51,24 @@ def create_amenity():
     storage.save()
     return make_response(jsonify(amenity.to_dict()), 201)
 
+
 @app_views.route('/amenities/<amenity_id>', methods=['PUT'],
                  strict_slashes=False)
 def update_amenity(amenity_id):
     """Updates a Amenity object."""
-    amenity = storage.get("Amenity", amenity_id)
+    if not request.get_json():
+        abort(400, description="Not a JSON")
+
+    ignore = ['id', 'created_at', 'updated_at']
+
+    amenity = storage.get(Amenity, amenity_id)
+
     if not amenity:
         abort(404)
 
-    body_request = request.get_json()
-    if not body_request:
-        abort(400, "Not a JSON")
-
-    for k, v in body_request.items():
-        if k != 'id' and k != 'created_at' and k != 'updated_at':
-            setattr(amenity, k, v)
+    data = request.get_json()
+    for key, value in data.items():
+        if key not in ignore:
+            setattr(amenity, key, value)
     storage.save()
     return make_response(jsonify(amenity.to_dict()), 200)
